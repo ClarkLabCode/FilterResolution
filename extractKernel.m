@@ -1,4 +1,4 @@
-function [kernel] = extractKernel(stim,resp,numFramesBack,numFramesForward)
+function [kernel, error] = extractKernel(stim,resp,numFramesBack,numFramesForward)
 
 % Function takes arguments
 % stim: column vector of stimulus, at a high frame rate, typically
@@ -33,9 +33,10 @@ for ii=1:length(chooseResponseInds)
 end
 
 R = R-mean(R);
-kernel = S\R;
+[kernel, CIs] = regress(R,S,1-0.682);
+error = CIs(:,2)-kernel;
 % Could compute Rhat here easily by finding Rhat = S*k;
 
 kernel = kernel(end:-1:1); % Reverse them for standard notation
-
+error = error(end:-1:1);
 end

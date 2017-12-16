@@ -149,8 +149,7 @@ end
 figure; hold on;
 subplot(2, 1, 1);
 hold on;
-PlotXvsY([-numFramesForward:filterLength]'/120*1000,-kernels*(120/1000),'error',-errors*(120/1000));
-% plot([-numFramesForward:filterLength]/120*1000,-kernels*(120/1000));
+plot([-numFramesForward:filterLength]/120*1000,-kernels*(120/1000));
 plot([-numFramesForward,filterLength]/120*1000,[0 0],'k:');
 set(gca,'ylim',[-2 6]*1e-3);
 xlabel('time (ms)');
