@@ -5,7 +5,7 @@ filterLength = 36; % in frames; 300 ms in our data
 numFramesForward = 6; % in frames; 50 ms in our data
 
 % Plots up 5 analyses, depending on choosePlot below
-choosePlot = 2; % 1-5, depending, see below
+choosePlot = 2 % 1-5, depending, see below
 switch choosePlot
     case 1 % Line scans
         % Load Data
@@ -87,7 +87,7 @@ switch choosePlot
         roiMask = D.roiMask;
         pixelsPerMicron = D.pixelsPerMicron;
         
-        sampleN = 3; % choose every N samples of the response to 
+        sampleN = 13; % choose every N samples of the response to 
         % simulate lower aquisition rate (but same linescan rate); for choosePlot 3
         for ii=1:size(allResp,2)
             locResp = allResp(:,ii);
@@ -103,11 +103,18 @@ end
 
 if choosePlot ~= 2
     for ii=1:size(allResp,2)
-        [kernels(:,ii), errors(:,ii)] = extractKernel(allStim, allResp(:,ii), filterLength, numFramesForward);
+        % We'll be using bootstrapping to calculate accurate error bars for
+        % the first ROI. (These are the error bars plotted in figure 2g)
+        bootStrap = (ii == 1) & choosePlot ~= 1;
+        [kernels(:,ii), errors(:,ii)] = extractKernel(allStim, allResp(:,ii), filterLength, numFramesForward,bootStrap);
     end
 else
-    for rr=1:length(roiIdx) % average them by big ROI
+    % In the by-line case, we have to modify the extraction process to
+    % correctly combine each line of the ROI
+    for rr=1:length(roiIdx)
         f = find(roiMember == roiIdx(rr));
+        % We'll be concatenating the stimulus and response matrix for each
+        % line belonging to a particular ROI
         RBig = [];
         SBig = [];
         for ff = f
@@ -135,11 +142,19 @@ else
         end
 
         RBig = RBig-mean(RBig);
-        [kernel, CIs] = regress(RBig,SBig,1-0.682);
-        error = CIs(:,2)-kernel;
-        % Could compute Rhat here easily by finding Rhat = S*k;
 
-        kernels(:,rr) = kernel(end:-1:1); % Reverse them for standard notation
+        % Use bootstrap method to find error bars for the first ROI
+        bootStrap = (ii == 1);
+        if bootStrap
+            kernel = regress(RBig,SBig);
+            CIs = bootci(100,{@regress,RBig,SBig},'alpha',1-0.682,'type',cper);
+        else
+            [kernel, CIs] = regress(RBig,SBig,1-0.682);
+        end
+        error = CIs(:,2)-kernel;
+
+        % Reverse kernels for standard notation
+        kernels(:,rr) = kernel(end:-1:1);
         errors(:,rr) = error(end:-1:1);
     end
 end
@@ -149,21 +164,18 @@ end
 figure; hold on;
 subplot(2, 1, 1);
 hold on;
-PlotXvsY([-numFramesForward:filterLength]'/120*1000,-kernels*(120/1000),'error',-errors*(120/1000));
-% plot([-numFramesForward:filterLength]/120*1000,-kernels*(120/1000));
-plot([-numFramesForward,filterLength]/120*1000,[0 0],'k:');
-set(gca,'ylim',[-2 6]*1e-3);
+ts = [-numFramesForward:filterLength]'*1000/120;
+ks = -kernels*(120);
+es = -errors*(120);
+PlotXvsY(ts,ks,'error',es);
+plot([-numFramesForward,filterLength]/120,[0 0],'k:');
+set(gca,'ylim',[-4 10]);
 xlabel('time (ms)');
-ylabel('-dF/F/contrast/ms');
+ylabel('-dF/F/contrast/s');
 title(['All kernels; method ' num2str(choosePlot)]);
-switch choosePlot
-    case {2 3 3.1 4}
-        % draws a line indicating the sampling interval
-        plot([0 1000/13],-0.001*[1 1],'k-','linewidth',2);
-    case 5
-        % draws a line indicating the sampling interval
-        plot([0 1000/13*sampleN],-0.001*[1 1],'k-','linewidth',2);
-end
+
+% draws a line indicating the sampling interval
+plot([0 1000/13],-1*[1 1],'k-','linewidth',2);
 
 % plot ROIs
 subplot(2, 1, 2);
