@@ -4,10 +4,11 @@ clear all;
 filterLength = 36; % in frames; 300 ms in our data
 numFramesForward = 6; % in frames; 50 ms in our data
 
-% Plots up 5 analyses, depending on choosePlot below
-choosePlot = 2 % 1-5, depending, see below
+% Plots up 4 analyses, depending on choosePlot below
+choosePlot = 4; % 1-4, depending, see below
+
 switch choosePlot
-    case 1 % Line scans
+    case 1 % Line scans (figure 4 supplement 1)
         % Load Data
         D = load('ArcLightLineScanData.mat');
         allResp = D.allRespForKernel;
@@ -17,7 +18,7 @@ switch choosePlot
         pixelsPerMicron = D.pixelsPerMicron;
         oneSecondSegment = D.oneSecondSegment;
         
-    case 2 % 2d data, treating each line as a sample
+    case 2 % 2d data, treating each line as a sample (figure 4c)
         % Load Data
         D = load('ArcLight2dScanByLine.mat');
         
@@ -35,34 +36,10 @@ switch choosePlot
             f = find(roiMask == lineIdx(ii));
             roiMember(ii) = origRoiMask(f(1)); % assign it the index
         end
-        
+     
     case 3 % 2d data, treating each ROI as single sample at ROI mid point time
-        % Load Data
-        D = load('ArcLight2dScanROI.mat');
-        
-        allResp = D.allRespForKernel;
-        allStim = D.allStimForKernel;
-        meanImage = D.meanMovie;
-        roiMask = D.roiMask;
-        pixelsPerMicron = D.pixelsPerMicron;
-
-        % allRespForKernel = stimLength x ROIs matrix -- response at ROI
-        % mid point
-        % allStimForKernel = stimLength x 1 vector
-        % meanMovie = movieHeight x movieWidth matrix
-        % roiMask = movieHeight x movieWidth matrix
-        
-    case 3.1 % 2d data, treating each ROI as single fast sample,
-        % timing mapped to first point of frame
-        
-        D = load('ArcLight2dScanROIAlignToFirstFrame.mat');
-        allResp = D.allRespForKernel;
-        allStim = D.allStimForKernel;
-        meanImage = D.meanMovie;
-        roiMask = D.roiMask;
-        pixelsPerMicron = D.pixelsPerMicron;
-                
-    case 4 % 2d data, as 3, but interpolating between frame-to-frame samples
+           % and interpolating between frame-to-frame samples
+           % (figure 4d pink)
         % Load Data
         D = load('ArcLight2dScanROI.mat');
         
@@ -76,7 +53,8 @@ switch choosePlot
             allResp(:,ii) = interpolateNan(allResp(:,ii));
         end
         
-    case 5 % 2d data, as 3, but supposing frames taken at 1/n original frame rate (but equal frame duration)
+    case 4 % 2d data, as 3, but supposing frames taken at 1/n original
+           % frame rate (but equal frame duration) (figure 4d green)
         % Load Data
         
         D = load('ArcLight2dScanROI.mat');
@@ -104,7 +82,7 @@ end
 if choosePlot ~= 2
     for ii=1:size(allResp,2)
         % We'll be using bootstrapping to calculate accurate error bars for
-        % the first ROI. (These are the error bars plotted in figure 2g)
+        % the first ROI. (These are the error bars plotted in figure 4d)
         bootStrap = (ii == 1) & choosePlot ~= 1;
         [kernels(:,ii), errors(:,ii)] = extractKernel(allStim, allResp(:,ii), filterLength, numFramesForward,bootStrap);
     end
